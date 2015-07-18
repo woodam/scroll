@@ -2,7 +2,7 @@ var scroll = {
     initialize : function(  ){
         var wraper = $("#scroll-warper"),
             content = wraper.find(".contents"),
-            warperHeight = wraper.outerHeight(true),
+            warperHeight = wraper.outerHeight(),
             contentHeight = content.outerHeight(true);
 
         this.content = content;
@@ -14,10 +14,45 @@ var scroll = {
         this.contentcutHeight = contentHeight - warperHeight//ÄÁµ§Ã÷ ÀÌµ¿ÇØ¾ßÇÒ ³ôÀÌ
         this.contentRatio = 1/this.contentcutHeight*100;//ÄÁµ§Ã÷ 1ÇÈ¼¿´ç ºñÀ²
         this.srcollY = 0;
+        this.oldScrollY = this.srcollY;
         this.contentY = 0;
+        this.isDrag = false;
+        this.dragStartPoint = 0;
+        this.scrollOffsetTop = wraper.offset().top;
+
 
         this.srcoll.appendTo(wraper).css({"height" : this.srcollHeight });
-        wraper.on( "mousewheel", $.proxy( this.watchScroll, this) );
+
+        wraper.on( "mousewheel", $.proxy( this.watchScroll, this ) );
+        this.srcoll.on( "mousedown", $.proxy( this.dragStart, this ) );
+        $(document).on( "mousemove", $.proxy( this.dragMove, this ) );
+        $(document).on( "mouseup", $.proxy( this.dragEnd, this ) );
+    },
+    dragStart : function( e ){
+        e.preventDefault();
+        this.isDrag = true;
+        this.dragStartPoint = e.offsetY*-1;
+    },
+    dragEnd : function( e ){
+        e.preventDefault();
+        this.isDrag = false;
+    },
+    dragMove : function( e ){
+        if( !this.isDrag ) return false;
+        e.preventDefault();
+        var distanceY = (e.clientY - this.scrollOffsetTop + this.dragStartPoint);
+        this.srcollY = (e.clientY + this.scrollOffsetTop*-1 + this.dragStartPoint);
+        var movingDistance =  (this.srcollRatio * distanceY / 100 * this.contentcutHeight)*-1;
+        if( this.srcollY >= this.remainderY ) {
+            this.srcollY = this.remainderY;
+            movingDistance = this.contentcutHeight*-1;
+        }
+        if( this.srcollY <= 0 ){
+            this.srcollY = 0;
+            movingDistance = 0;
+        }
+        this.srcoll.css({ "top" : this.srcollY });
+        this.content.css({ "top" : movingDistance });
     },
     watchScroll : function( e ){
         e.preventDefault();
@@ -26,6 +61,7 @@ var scroll = {
     descend : function( e ){
         if( this.srcollY >= this.remainderY ) return false;
         var movingDistance =  this.srcollRatio * this.distanceY / 100 * this.contentcutHeight;
+        console.log( movingDistance )
         this.srcollY += 40;
         this.contentY += movingDistance;
         if( this.srcollY >= this.remainderY ){
